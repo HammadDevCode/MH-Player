@@ -13,7 +13,6 @@ router.post("/register", async (req, res, next) =>{
         const {firstName, lastName, email, password} = req.body
 
         const result = await AuthRegistrationSchema.validateAsync(req.body)
-        console.log(result);
 
         if(!email || !password) throw createError.BadRequest()
 

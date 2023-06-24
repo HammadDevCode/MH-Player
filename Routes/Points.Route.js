@@ -232,7 +232,7 @@ router.post("/collect-video-points", verifyAccessToken, getUserData, async (req,
 
 
 
-            (await session).commitTransaction()
+            await session.commitTransaction()
             res.send({message: "points Collected"})
 
         } catch (error) {
