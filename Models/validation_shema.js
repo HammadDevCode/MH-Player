@@ -8,10 +8,10 @@ const AuthRegistrationSchema = joi.object({
     confirmPassword: joi.ref('password'),
     firstName: joi.string().min(3).required(),
     lastName: joi.string().min(3).required(),
-    cloningDetection: {
-        appInstalledPath: joi.string().required().label("Problem with Device"),
-        packageName: joi.string().required().label("Problem with Device")
-    }
+    cloningDetection: joi.object({
+        appInstalledPath: joi.string().required().label("Error while Registeration"),
+        packageName: joi.string().required().label("Error while Registeration")
+    }).required()
 })
 
 
