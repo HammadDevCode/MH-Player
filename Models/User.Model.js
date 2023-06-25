@@ -59,6 +59,16 @@ const UserSchema = new Schema({
     Usererrors: {
         type: Array,
         default: []
+    },
+    cloningDetection: {
+        appInstalledPath: {
+            type: String,
+            required: true
+        },
+        packageName:{
+            type: String,
+            required: true
+        }
     }
 })
 

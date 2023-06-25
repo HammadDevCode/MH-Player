@@ -236,12 +236,12 @@ router.post("/collect-video-points", verifyAccessToken, getUserData, async (req,
             res.send({message: "points Collected"})
 
         } catch (error) {
-            (await session).abortTransaction()
+            await session.abortTransaction()
             console.log(error);
             res.send({message: "Failed to collect points"})
         }
 
-        (await session).endSession()
+        await session.endSession()
         
     }
 
@@ -314,8 +314,31 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
             return res.send({message: "All Points Are Collected"})
         }
 
-        await DailyPoints.updateOne({userId}, {collectedPoints:{...dailyPoints.collectedPoints, audioPlaying: audioCollectedPoint+points}})
-        res.send({message: "points added."})
+
+
+        const session = await mongoose.connection.startSession()
+        try {
+            await session.startTransaction()
+            await DailyPoints.updateOne({userId}, {collectedPoints:
+                {...dailyPoints.collectedPoints, audioPlaying: audioCollectedPoint+points}},{session:session})
+
+
+                await User.updateOne({_id:userId}, {$inc: {points}}, {session: session})
+
+
+
+
+            await session.commitTransaction()
+            res.send({message: "points Collected"})
+
+        } catch (error) {
+            await session.abortTransaction()
+            console.log(error);
+            res.send({message: "Failed to collect points"})
+        }
+
+        await session.endSession()
+
     }
 
     
