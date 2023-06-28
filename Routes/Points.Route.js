@@ -8,56 +8,65 @@ const mongoose = require("mongoose")
 const { DateModelName, RandomInt, RandomizeToIntList, addErrorToUser } = require("../helpers/custom_functions")
 
 
-router.post("/add-video-points", verifyAccessToken, getUserData,async  (req, res, next) =>{
+router.post("/get-points-details", verifyAccessToken, getUserData, async  (req, res, next) =>{
     try {
 
 
-
-        
 
         const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
 
 
 
-
-
-
-
-
-
-
-
-
         const userId = req.payload.aud
-        const dailyPoints = await DailyPoints.findOne({userId})
-        if(dailyPoints){
-            const level = await Level.findOne({level: req.user.level})
-
-            if(!level) throw createError.InternalServerError()
-
-            const maximumPoints = level.dailyPoints.videoPlaying
-
-            const newPoints = dailyPoints.earnedPoints.videoPlaying + level.addPointsPerSec
-            if(newPoints < maximumPoints){
-                const result = await DailyPoints.updateOne({userId}, {earnedPoints:{...dailyPoints.earnedPoints, videoPlaying: newPoints}})
-                if(result.modifiedCount){
-                    res.send({message: "Points Added", Points: newPoints})
-                }else {
-                    res.send({message: "Points Not Added"})
-                }
+        const {videoEarnedPoints, audioEarnedPoints} = req.body
+        var dailyPoints = await DailyPoints.findOne({userId})
 
 
-            } else {
-                const result = await DailyPoints.updateOne({userId}, {earnedPoints:{...dailyPoints.earnedPoints, videoPlaying: maximumPoints}})
-                    res.send({message: "All Points are collected", Points: maximumPoints})
-            }
+        console.log(req.body);
+
+
+
+        if(!dailyPoints){ 
+
+            dailyPoints = await new DailyPoints({userId}).save()
 
         } else{
-            const savedDailyPoints = new DailyPoints({userId})
-            await savedDailyPoints.save()
-            res.send({message: "Daily Points Added", Points: 0})
+            await DailyPoints.updateOne({userId}, {earnedPoints: {...dailyPoints.earnedPoints, videoPlaying: videoEarnedPoints, audioPlaying: audioEarnedPoints}})
+            dailyPoints = await DailyPoints.findOne({userId})
         }
+
+
+        
+        const level = await Level.findOne({level: req.user.level})
+
+
+        // Get collectable Points list
+        // Get collectable Points lis
+        const videoEarnedPoint = dailyPoints.earnedPoints.videoPlaying
+        const videoCollectedPoint = dailyPoints.collectedPoints.videoPlaying
+        const audioEarnedPoint = dailyPoints.earnedPoints.audioPlaying
+        const audioCollectedPoint = dailyPoints.collectedPoints.audioPlaying
+        const collectableVideoPoints = videoEarnedPoint - videoCollectedPoint
+        const collectableAudioPoints = audioEarnedPoint - audioCollectedPoint
+        const videoPointsList = RandomizeToIntList(collectableVideoPoints, 200, 500)
+        const audioPointsList = RandomizeToIntList(collectableAudioPoints, 200, 500)
+        // Get collectable Points list
+
+
+        if(!level) throw createError.InternalServerError(); 
+        console.log(dailyPoints.earnedPoints.videoPlaying);
+            res.send({videoEarnedPoints: dailyPoints.earnedPoints.videoPlaying,
+                audioEarnedPoints: dailyPoints.earnedPoints.audioPlaying,
+                videoCollectedPoints: dailyPoints.collectedPoints.videoPlaying,
+                audioCollectedPoints: dailyPoints.collectedPoints.audioPlaying,
+                videoMaximumPoints: level.dailyPoints.videoPlaying,
+                audioMaximumPoints: level.dailyPoints.audioPlaying,
+                addPointsPerSec: level.addPointsPerSec, user: req.user, getCollectablePointsList: {videoPointsList, audioPointsList}})
+
+           
+
         } catch (error) {
+            console.log(error);
             next(error)
             
         }
