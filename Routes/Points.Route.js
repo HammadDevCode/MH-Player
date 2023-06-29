@@ -181,7 +181,7 @@ router.post("/collect-video-points", verifyAccessToken, getUserData, async (req,
     const newDivide = parseInt((videoCollectedPoint + points) / adAfterPoints)
 
     if(videoCollectedPoint  == videoEarnedPoint && videoCollectedPoint == maximumPoints){
-        return res.send({message: "All Points Are Collected"})
+        return next(createError.Conflict("All Points Are Collected"))
     }
 
 
@@ -192,7 +192,7 @@ router.post("/collect-video-points", verifyAccessToken, getUserData, async (req,
          breakCondition: "videoCollectedPoint  > videoEarnedPoint", resolvedWith: 
          {tags: "collectedPoints.videoPlaying = videoEarnedPoint", values: `collectedPoints.videoPlaying = ${videoEarnedPoint}`}}))
 
-        return res.send({message: "All Points Are Collected"})
+         return next(createError.Conflict("All Points Are Collected"))
     }
     
     if(videoCollectedPoint > maximumPoints){
@@ -202,7 +202,7 @@ router.post("/collect-video-points", verifyAccessToken, getUserData, async (req,
          breakCondition: "videoCollectedPoint  > maximumPoints", resolvedWith:
           {tags: "collectedPoints.videoPlaying = maximumPoints", values: `collectedPoints.videoPlaying = ${level.dailyPoints.videoPlaying}`}}))
         
-        return res.send({message: "All Points Are Collected"})
+          return next(createError.Conflict("All Points Are Collected"))
     }
 
 
@@ -210,17 +210,18 @@ router.post("/collect-video-points", verifyAccessToken, getUserData, async (req,
 
    
     if(points > videoEarnedPoint - videoCollectedPoint){
-        return next(createError.BadRequest())
+        return next(createError.BadRequest("Points can't be collected"))
     }
 
 
 
     if(newDivide > divide && !rewardedAd){
-        res.status(201).send({videoAdRequired: true})
+        return next(createError.PaymentRequired())
     }else {
         if((videoCollectedPoint + points) > maximumPoints){
             await DailyPoints.updateOne({userId}, {collectedPoints:{...dailyPoints.collectedPoints, videoPlaying: maximumPoints}})
-            return res.send({message: "All Points Are Collected"})
+
+            return next(createError.Conflict("All Points Are Collected"))
         }
 
 
@@ -242,12 +243,13 @@ router.post("/collect-video-points", verifyAccessToken, getUserData, async (req,
 
 
             await session.commitTransaction()
-            res.send({message: "points Collected"})
+            res.send({message: "points Collected", points})
 
         } catch (error) {
             await session.abortTransaction()
             console.log(error);
-            res.send({message: "Failed to collect points"})
+
+            next(createError.Forbidden("Failed to collect points"))
         }
 
         await session.endSession()
@@ -265,6 +267,7 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
     const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
 
 
+    
 
 
 
@@ -281,7 +284,7 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
     const newDivide = parseInt((audioCollectedPoint + points) / adAfterPoints)
 
     if(audioCollectedPoint  == audioEarnedPoint && audioCollectedPoint == maximumPoints){
-        return res.send({message: "All Points Are Collected"})
+        return next(createError.Conflict("All Points Are Collected"))
     }
 
 
@@ -292,7 +295,7 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
          breakCondition: "audioCollectedPoint  > audioEarnedPoint", resolvedWith: 
          {tags: "collectedPoints.audioPlaying = audioEarnedPoint", values: `collectedPoints.audioPlaying = ${audioEarnedPoint}`}}))
 
-        return res.send({message: "All Points Are Collected"})
+         return next(createError.Conflict("All Points Are Collected"))
     }
     
     if(audioCollectedPoint > maximumPoints){
@@ -302,7 +305,7 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
          breakCondition: "audioCollectedPoint  > maximumPoints", resolvedWith:
           {tags: "collectedPoints.audioPlaying = maximumPoints", values: `collectedPoints.audioPlaying = ${level.dailyPoints.audioPlaying}`}}))
         
-        return res.send({message: "All Points Are Collected"})
+          return next(createError.Conflict("All Points Are Collected"))
     }
 
 
@@ -310,21 +313,26 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
 
    
     if(points > audioEarnedPoint - audioCollectedPoint){
-        return next(createError.BadRequest())
+        return next(createError.BadRequest("Points can't be collected"))
     }
 
 
 
     if(newDivide > divide && !rewardedAd){
-        res.status(201).send({audioAdRequired: true})
+        return next(createError.PaymentRequired())
     }else {
         if((audioCollectedPoint + points) > maximumPoints){
             await DailyPoints.updateOne({userId}, {collectedPoints:{...dailyPoints.collectedPoints, audioPlaying: maximumPoints}})
-            return res.send({message: "All Points Are Collected"})
+
+            return next(createError.Conflict("All Points Are Collected"))
         }
 
 
+    
+        
 
+
+ 
         const session = await mongoose.connection.startSession()
         try {
             await session.startTransaction()
@@ -338,17 +346,19 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
 
 
             await session.commitTransaction()
-            res.send({message: "points Collected"})
+            res.send({message: "points Collected", points})
 
         } catch (error) {
             await session.abortTransaction()
             console.log(error);
-            res.send({message: "Failed to collect points"})
+
+            next(createError.Forbidden("Failed to collect points"))
         }
 
         await session.endSession()
-
+        
     }
+
 
     
 
