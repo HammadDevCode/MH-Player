@@ -1,6 +1,8 @@
 const mongoose = require("mongoose")
 const bcrypt = require("bcrypt")
 const {v4 :UIDv4} = require("uuid")
+const { required } = require("@hapi/joi/lib/base")
+const { type } = require("@hapi/joi/lib/extend")
 const Schema = mongoose.Schema
 
 const UserSchema = new Schema({
@@ -56,6 +58,24 @@ const UserSchema = new Schema({
         type: Number,
         default: 0
     },
+    referralUser:{
+        UID: {
+            type: String,
+            default: "Direct Account"
+        },
+        rewarded: {
+            type: Number,
+            default: 0
+        }
+    },
+    referrals: {
+        type: Array,
+        default: []
+    },
+    referralsCount:{
+        type: Number,
+        default:0
+    },
     Usererrors: {
         type: Array,
         default: []
@@ -71,6 +91,31 @@ const UserSchema = new Schema({
         }
     }
 })
+
+UserSchema.pre('save', async function(next) {
+    try {
+        const salt = await bcrypt.genSalt(10)
+        this.password = await bcrypt.hash(this.password, salt)
+
+        this.UID = UIDv4()
+        next()
+    } catch (error) {
+        next(error)
+    }
+})
+
+
+UserSchema.methods.isValidPassword = async function (password){
+    try {
+        return await bcrypt.compare(password, this.password)
+    } catch (error) {
+        throw error
+        
+    }
+    
+}
+
+
 
 const LevelSchema = new Schema({
     level: {
@@ -112,6 +157,37 @@ const LevelSchema = new Schema({
             type: Number,
             required: true
         }
+    },
+    referralReward: {
+        type: Number
+    },
+    dailyCheckIn: {
+        rewards: {
+            type: Array,
+        required: true},
+        adType: {
+            type: Array,
+        required: true}
+    },
+    spin: {
+        spinType: {
+            type: Array,
+        required: true},
+        maxNoOfSpins: {
+            type: Number,
+            required: true},
+        prices: {
+            type: Array,
+        required: true}
+    },
+
+    conversionRates: {
+      pointsToDiamond: {
+        type: Number
+    },
+      DiamondToCurrency: {
+        type: Number
+    }
     }
 })
 
@@ -150,33 +226,63 @@ const DailyPointsSchema = new Schema({
             type: Number,
             required: true,
             default: 0
+        },
+        dailyCheckIn: {
+            type: Number,
+            default: 0
+        }
+    },
+    spin:{
+        numberOfSpins:{
+            type: Number,
+            default: 0
+        },
+        spinRewards: {
+            type: Array,
+            default: []
+        },
+        spinPrice: {
+            type: Array,
+            default: []
         }
     }
 })
 
 
-UserSchema.pre('save', async function(next) {
-    try {
-        const salt = await bcrypt.genSalt(10)
-        this.password = await bcrypt.hash(this.password, salt)
-
-        this.UID = UIDv4()
-        next()
-    } catch (error) {
-        next(error)
+const TranactionSchema = new Schema({
+    userId: {
+        type: String, 
+        required: true
+    },
+    amount: {
+        type: Number, 
+        required: true
+    },
+    from : {
+        type: String, 
+        required: true
+    },
+    to : {
+        type: String, 
+        required: true
+    },
+    status: {
+        type: String,
+        default: "Pending"
+    },
+    timeStump: {
+        type: String,
+        default: Date.now()
+    },
+    confirmedTime: {
+        type: String,
+        default: null
+    },
+    conversionRate: {
+        type: Number,
+        required: true
     }
 })
-
-
-UserSchema.methods.isValidPassword = async function (password){
-    try {
-        return await bcrypt.compare(password, this.password)
-    } catch (error) {
-        throw error
-        
-    }
-    
-}
 
 
 
@@ -184,5 +290,6 @@ UserSchema.methods.isValidPassword = async function (password){
 const User = mongoose.model("user", UserSchema)
 const UserEmailVerification = mongoose.model("User Email Verification", EmailVerificationSchema)
 const Level = mongoose.model("level", LevelSchema)
+const Tranaction = mongoose.model("Tranaction", TranactionSchema)
 // const DailyPoints = mongoose.model("daily Points", DailyPointsSchema)
-module.exports = {User, UserEmailVerification, Level, DailyPointsSchema}
+module.exports = {User, UserEmailVerification, Level, DailyPointsSchema, Tranaction}

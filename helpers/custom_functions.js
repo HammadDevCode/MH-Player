@@ -25,6 +25,15 @@ module.exports = {
         const modelName = `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}`
         return modelName
     },
+
+    PreviousDateModelName: ()=>{
+        const date = new Date()
+
+        date.setDate(date.getDate - 1)
+
+        const modelName = `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}`
+        return modelName
+    },
     
     RandomizeToIntList: (int, min, max)=>{
         var List = []

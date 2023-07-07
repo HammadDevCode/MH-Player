@@ -1,26 +1,50 @@
 const router = require("express").Router()
 const createError = require("http-errors")
-const {User} = require("../Models/User.Model")
+const {User, Level} = require("../Models/User.Model")
 const {AuthRegistrationSchema, AuthLoginSchema} = require("../Models/validation_shema")
 const {signAccessToken, signRefreshToken, verifyRefreshToken, verifyAccessToken} = require("../helpers/jwt_helper")
 const {sendEmail} = require("../helpers/email")
 const { getUserData, _sendOtpToEmail, _verifyEmailWithOtp } = require("../helpers/Auth_helper")
 const { sendResponse } = require("../helpers/custom_functions")
+const { default: mongoose } = require("mongoose")
 
 router.post("/register", async (req, res, next) =>{
     
     try {
-        const {firstName, lastName, email, password} = req.body
+        const {firstName, lastName, email, password, referralCode} = req.body
 
         const result = await AuthRegistrationSchema.validateAsync(req.body)
 
-        if(!email || !password) throw createError.BadRequest()
+        if(!firstName || !lastName || !email || !password) throw createError.BadRequest()
 
         const doesExist = await User.findOne({email: result.email})
         if(doesExist) throw createError.Conflict(`${result.email} is already been registered.`)
 
         const user = new User(result)
         const savedUser = await user.save()
+
+
+        const session = await mongoose.startSession()
+        try {
+        // referral reward section
+            
+        const referralUser = await User.findOne({UID: referralCode})
+        if(referralUser){
+            await session.startTransaction()
+            const referralLevel = await Level.findOne({userId:referralUser._id})
+            if(referralLevel){
+            await User.updateOne({_id: savedUser.id}, {referralUser: {UID: referralCode, rewarded: referralLevel.referralReward}}, {session})
+            // Add referral reward (points)
+            await User.updateOne({_id: referralUser._id}, {$inc:{points: referralLevel.referralReward, referralsCount: 1}, $push:{referrals: savedUser.UID}}, {session})
+            await session.commitTransaction()
+            }
+
+        }
+        } catch (error) {
+            console.log(error);
+            await session.abortTransaction()
+        }
+
         const accessToken = await signAccessToken(savedUser.id)
         const refreshToken = await signRefreshToken(savedUser.id)
         res.send({accessToken, refreshToken})

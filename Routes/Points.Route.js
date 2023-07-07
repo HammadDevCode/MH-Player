@@ -5,26 +5,19 @@ const router = express.Router()
 const {Level, DailyPointsSchema, User} = require("../Models/User.Model")
 const createError = require("http-errors")
 const mongoose = require("mongoose")
-const { DateModelName, RandomInt, RandomizeToIntList, addErrorToUser } = require("../helpers/custom_functions")
+const { DateModelName, RandomInt, RandomizeToIntList, addErrorToUser, PreviousDateModelName } = require("../helpers/custom_functions")
 
 
-router.post("/get-points-details", verifyAccessToken, getUserData, async  (req, res, next) =>{
+
+// verifyAccessToken, getUserData required
+const getAllDetails = async(req, res, next) =>{
     try {
-
-
-
+        
         const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
-
-
 
         const userId = req.payload.aud
         const {videoEarnedPoints, audioEarnedPoints} = req.body
         var dailyPoints = await DailyPoints.findOne({userId})
-
-
-        console.log(req.body);
-
-
 
         if(!dailyPoints){ 
 
@@ -35,12 +28,9 @@ router.post("/get-points-details", verifyAccessToken, getUserData, async  (req, 
             dailyPoints = await DailyPoints.findOne({userId})
         }
 
-
-        
         const level = await Level.findOne({level: req.user.level})
+        if(!level) return next(createError.InternalServerError()) 
 
-
-        // Get collectable Points list
         // Get collectable Points lis
         const videoEarnedPoint = dailyPoints.earnedPoints.videoPlaying
         const videoCollectedPoint = dailyPoints.collectedPoints.videoPlaying
@@ -53,16 +43,34 @@ router.post("/get-points-details", verifyAccessToken, getUserData, async  (req, 
         // Get collectable Points list
 
 
-        if(!level) throw createError.InternalServerError(); 
-        console.log(dailyPoints.earnedPoints.videoPlaying);
-            res.send({videoEarnedPoints: dailyPoints.earnedPoints.videoPlaying,
-                audioEarnedPoints: dailyPoints.earnedPoints.audioPlaying,
-                videoCollectedPoints: dailyPoints.collectedPoints.videoPlaying,
-                audioCollectedPoints: dailyPoints.collectedPoints.audioPlaying,
-                videoMaximumPoints: level.dailyPoints.videoPlaying,
-                audioMaximumPoints: level.dailyPoints.audioPlaying,
-                addPointsPerSec: level.addPointsPerSec, user: req.user, getCollectablePointsList: {videoPointsList, audioPointsList}})
+        return {dailyPoints: {videoEarnedPoints: dailyPoints.earnedPoints.videoPlaying,
+            audioEarnedPoints: dailyPoints.earnedPoints.audioPlaying,
+            videoCollectedPoints: dailyPoints.collectedPoints.videoPlaying,
+            audioCollectedPoints: dailyPoints.collectedPoints.audioPlaying,
+            videoMaximumPoints: level.dailyPoints.videoPlaying,
+            audioMaximumPoints: level.dailyPoints.audioPlaying,
+            addPointsPerSec: level.addPointsPerSec}, 
 
+            user: req.user,
+
+            getCollectablePointsList: {videoPointsList, audioPointsList}}
+
+       
+
+    } catch (error) {
+        return next(createError.InternalServerError())
+    }
+}
+
+
+router.post("/get-all-details", verifyAccessToken, getUserData, async  (req, res, next) =>{
+    try {
+
+
+        
+        const allDetails = await getAllDetails(req, res, next)
+
+        res.send({allDetails})
            
 
         } catch (error) {
@@ -72,8 +80,6 @@ router.post("/get-points-details", verifyAccessToken, getUserData, async  (req, 
         }
     
 })
-
-
 
 
 router.post("/add-audio-points", verifyAccessToken, getUserData,async  (req, res, next) =>{
@@ -129,35 +135,37 @@ router.post("/add-audio-points", verifyAccessToken, getUserData,async  (req, res
     
 })
 
-router.get("/get-collectable-points-list", verifyAccessToken, async(req, res, next)=>{
+
+// deprecated
+// router.get("/get-collectable-points-list", verifyAccessToken, async(req, res, next)=>{
     
 
-    const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
-    const userId = req.payload.aud
-    const dailyPoints = await DailyPoints.findOne({userId})
+//     const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
+//     const userId = req.payload.aud
+//     const dailyPoints = await DailyPoints.findOne({userId})
 
 
 
 
 
-    const videoEarnedPoint = dailyPoints.earnedPoints.videoPlaying
-    const videoCollectedPoint = dailyPoints.collectedPoints.videoPlaying
+//     const videoEarnedPoint = dailyPoints.earnedPoints.videoPlaying
+//     const videoCollectedPoint = dailyPoints.collectedPoints.videoPlaying
 
-    const audioEarnedPoint = dailyPoints.earnedPoints.audioPlaying
-    const audioCollectedPoint = dailyPoints.collectedPoints.audioPlaying
+//     const audioEarnedPoint = dailyPoints.earnedPoints.audioPlaying
+//     const audioCollectedPoint = dailyPoints.collectedPoints.audioPlaying
 
-    const collectableVideoPoints = videoEarnedPoint - videoCollectedPoint
-    const collectableAudioPoints = audioEarnedPoint - audioCollectedPoint
+//     const collectableVideoPoints = videoEarnedPoint - videoCollectedPoint
+//     const collectableAudioPoints = audioEarnedPoint - audioCollectedPoint
     
-    const videoPointsList = RandomizeToIntList(collectableVideoPoints, 200, 500)
-    const audioPointsList = RandomizeToIntList(collectableAudioPoints, 200, 500)
+//     const videoPointsList = RandomizeToIntList(collectableVideoPoints, 200, 500)
+//     const audioPointsList = RandomizeToIntList(collectableAudioPoints, 200, 500)
 
-    res.send({videoPointsList, audioPointsList})
+//     res.send({videoPointsList, audioPointsList})
 
 
 
     
-})
+// })
 
 
 router.post("/collect-video-points", verifyAccessToken, getUserData, async (req, res, next) =>{
@@ -241,9 +249,9 @@ router.post("/collect-video-points", verifyAccessToken, getUserData, async (req,
 
 
 
-
             await session.commitTransaction()
-            res.send({message: "points Collected", points})
+            const allDetails = await getAllDetails(req, res, next)
+            res.send({message: "points Collected", points, allDetails})
 
         } catch (error) {
             await session.abortTransaction()
@@ -346,7 +354,8 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
 
 
             await session.commitTransaction()
-            res.send({message: "points Collected", points})
+            const allDetails = await getAllDetails(req, res, next)
+            res.send({message: "points Collected", points, allDetails})
 
         } catch (error) {
             await session.abortTransaction()
@@ -363,5 +372,129 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
     
 
 })
+
+
+
+router.post("/daily-check-in", verifyAccessToken, getUserData, async (req, res, next) =>{
+
+    const userId = req.payload.aud
+    const level = await Level.findOne({level: req.user.level})
+    if(!level) return next(createError.InternalServerError())
+
+    const PreviousDailyPoints = mongoose.model(PreviousDateModelName(), DailyPointsSchema)
+    const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
+    let index
+    const previousDailyPoints = await PreviousDailyPoints.findOne({userId})
+    if(!previousDailyPoints) {
+        index = 0
+    } else{
+        index = level.dailyCheckIn.rewards.indexOf(previousDailyPoints.collectedPoints.dailyCheckIn)
+        (index == 7) ? index = 0 : index++
+    }
+
+
+
+    let dailyPoints = await DailyPoints.findOne({userId})
+    if(!dailyPoints) dailyPoints = await new DailyPoints({userId}).save()
+
+    if(dailyPoints.collectedPoints.dailyCheckIn == 0){
+        dailyPoints = DailyPoints.updateOne({userId}, {collectedPoints:{...dailyPoints.collectedPoints, dailyCheckIn:level.dailyCheckIn.rewards[index]}})
+        if(dailyPoints.isModified){
+            const allDetails = await getAllDetails(req, res, next)
+            return res.send({message: "Points are collected", allDetails})
+        }else {
+        return next(createError.BadRequest("Points Already Collected"))
+        }
+    }else {
+        return next(createError.BadRequest("Points Already Collected"))
+
+        
+    }
+
+
+
+})
+
+
+
+router.post("/spin-to-earn", verifyAccessToken, getUserData, async (req, res, next) =>{
+
+    const session = await mongoose.startSession()
+    await session.startTransaction()
+
+    try {
+        
+
+        const {adRequired} = req.body
+        const userId = req.payload.aud
+        const level = await Level.findOne({userId})
+        if(!level) return next(createError.InternalServerError())
+    
+        const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
+        const dailyPoints = await DailyPoints.findOne({userId})
+        if(!dailyPoints) dailyPoints = await new DailyPoints({userId}).save()
+    
+        if(dailyPoints.spin.numberOfSpins >= level.spin.maxNoOfSpins) return next(createError.BadRequest("Max limit raeched"))
+    
+        if(typeof level.spin.spinType[dailyPoints.spin.numberOfSpins] === 'string'){
+            // ad is required
+            if(adRequired == level.spin.spinType[dailyPoints.spin.numberOfSpins]){
+                // requireed ad rewarded
+            }else {
+                return next(createError.BadRequest("Ad is required"))
+            }
+        }else if(typeof level.spin.spinType[dailyPoints.spin.numberOfSpins] === 'number'){
+            // cost required 
+            if(req.user.points >= level.spin.spinType[dailyPoints.spin.numberOfSpins]){
+                // points available in users account
+    
+                // Detect Points from users accounts
+                await User.updateOne({_id: userId}, {$inc: {points: -level.spin.spinType[dailyPoints.spin.numberOfSpins]}}, {session})
+    
+            }else {
+                // points are not enough to spin
+                return next(createError.BadRequest("Points are not enough to spin"))
+            }
+            
+        } else{
+            return next(createError.InternalServerError())
+        }
+        
+        // spin random and reward
+    
+        const itemIndex = RandomInt(0, 7)
+    
+        const reward = level.spin.prices[itemIndex]
+        
+        await DailyPoints.updateOne({userId}, {spin:{...dailyPoints.spin, $inc:{numberOfSpins: 1}, $push:{spinReward: reward, spinPrice: level.spin.spinType[dailyPoints.spin.numberOfSpins]}}}, {session})
+    
+        await User.updateOne({_id: userId}, {$inc: {points: reward}}, {session})
+    
+        await session.commitTransaction()
+        const allDetails = await getAllDetails(req, res, next)
+        res.send({message: "Spin Rewarded", itemIndex, reward, allDetails})
+
+
+    } catch (error) {
+        console.log(error);
+        await session.abortTransaction()
+        return next(createError.InternalServerError())
+        
+    }
+
+
+
+
+
+
+})
+
+
+
+
+
+
+
+
 
 module.exports = router
