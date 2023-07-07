@@ -34,7 +34,7 @@ _sendOtpToEmail: async(req, res, next) =>{
         const UserEmailVerificationRecords = await UserEmailVerification.findOne({userId})
         console.log({emailaa: UserEmailVerificationRecords});
         if(UserEmailVerificationRecords){
-            if((Date.parse(UserEmailVerificationRecords[0].createdAt)+ 60000) >  Date.now()){
+            if((Date.parse(UserEmailVerificationRecords.createdAt)+ 60000) >  Date.now()){
                 return sendResponse(res, 208, "Email verification OTP already sent")
             }else {
                 await UserEmailVerification.deleteMany({userId})
