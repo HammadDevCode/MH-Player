@@ -32,6 +32,7 @@ router.post("/register", async (req, res, next) =>{
         if(referralUser){
             await session.startTransaction()
             const referralLevel = await Level.findOne({userId:referralUser._id})
+            console.log(referralLevel.referralReward);
             if(referralLevel){
             await User.updateOne({_id: savedUser.id}, {referralUser: {UID: referralCode, rewarded: referralLevel.referralReward}}, {session})
             // Add referral reward (points)
