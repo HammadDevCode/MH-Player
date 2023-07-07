@@ -41,6 +41,7 @@ router.post("/register", async (req, res, next) =>{
 
         }
         } catch (error) {
+            console.log("Abort Referal Reward");
             console.log(error);
             await session.abortTransaction()
         }
