@@ -22,27 +22,27 @@ _sendOtpToEmail: async(req, res, next) =>{
     try {
         
         
-        const _id = req.payload.aud
+        const userId = req.payload.aud
 
-        const user = await User.findOne({_id:_id})
+        const user = await User.findOne({_id:userId})
         const email = user.email
         const otp = `${Math.floor(100000 + Math.random() * 900000)}`
         
         const saltRounds = 10
         const hashedOtp = await bcrypt.hash(otp, saltRounds)
 
-        const UserEmailVerificationRecords = await UserEmailVerification.find({userId:_id}, {new: true})
+        const UserEmailVerificationRecords = await UserEmailVerification.findOne({userId}, {new: true})
         console.log({emailaa: UserEmailVerificationRecords});
-        if(UserEmailVerificationRecords.length){
+        if(UserEmailVerificationRecords){
             if((Date.parse(UserEmailVerificationRecords[0].createdAt)+ 60000) >  Date.now()){
                 return sendResponse(res, 208, "Email verification OTP already sent")
             }else {
-                await UserEmailVerification.deleteMany({userId:_id})
+                await UserEmailVerification.deleteMany({userId})
             }
         }
 
         const newEmailOtpVerification =  new UserEmailVerification({
-            userId:_id,
+            userId,
             otp:hashedOtp,
             createdAt:Date.now(),
             expiresAt:Date.now() + 900000
