@@ -48,6 +48,8 @@ _sendOtpToEmail: async(req, res, next) =>{
             expiresAt:Date.now() + 900000
         });
         await newEmailOtpVerification.save()
+        console.log({emailnew: newEmailOtpVerification});
+
         await sendEmail(email, "Verify your Email."  , `<p>your Email verification One Time Password (OTP) is <b>${otp}</b>. This OTP expires in 15 minutes.</p>`)
         next()
 
