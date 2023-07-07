@@ -32,7 +32,7 @@ _sendOtpToEmail: async(req, res, next) =>{
         const hashedOtp = await bcrypt.hash(otp, saltRounds)
 
         const UserEmailVerificationRecords = await UserEmailVerification.findOne({userId})
-        console.log({emailaa: UserEmailVerificationRecords});
+        console.log({emailaa: UserEmailVerificationRecords.createdAt});
         if(UserEmailVerificationRecords){
             if((Date.parse(UserEmailVerificationRecords.createdAt)+ 60000) >  Date.now()){
                 return sendResponse(res, 208, "Email verification OTP already sent")
