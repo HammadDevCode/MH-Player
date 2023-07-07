@@ -31,7 +31,7 @@ _sendOtpToEmail: async(req, res, next) =>{
         const saltRounds = 10
         const hashedOtp = await bcrypt.hash(otp, saltRounds)
 
-        const UserEmailVerificationRecords = await UserEmailVerification.findOne({userId}, {new: true})
+        const UserEmailVerificationRecords = await UserEmailVerification.findOne({userId})
         console.log({emailaa: UserEmailVerificationRecords});
         if(UserEmailVerificationRecords){
             if((Date.parse(UserEmailVerificationRecords[0].createdAt)+ 60000) >  Date.now()){
