@@ -10,7 +10,7 @@ module.exports = {
             const payload = {}
             const secret = process.env.ACCESS_TOKEN_SECRET
             const options = {
-                expiresIn: "15h",
+                expiresIn: process.env.ACCESS_TOKEN_EXPIRE_TIME||"15s",
                 issuer: process.env.ISSUER,
                 audience: userId
             }
@@ -47,7 +47,7 @@ module.exports = {
             const payload = {}
             const secret = process.env.REFRESH_TOKEN_SECRET
             const options = {
-                expiresIn: "15d",
+                expiresIn: process.env.ACCESS_TOKEN_EXPIRE_TIME||"15d",
                 issuer:process.env.ISSUER,
                 audience: userId
             }

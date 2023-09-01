@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt")
 const {v4 :UIDv4} = require("uuid")
 const { required } = require("@hapi/joi/lib/base")
 const { type } = require("@hapi/joi/lib/extend")
+const { boolean } = require("@hapi/joi")
 const Schema = mongoose.Schema
 
 const UserSchema = new Schema({
@@ -89,6 +90,10 @@ const UserSchema = new Schema({
             type: String,
             required: true
         }
+    },
+    AccountStatus:{
+        type: String,
+        default: "Enabled"
     }
 })
 
@@ -121,6 +126,10 @@ const LevelSchema = new Schema({
     level: {
         type: Number,
         required: true
+    },
+    closePointsSection:{
+        type: Boolean,
+        default: true
     },
     dailyPoints: {
         videoPlaying: {
@@ -170,13 +179,13 @@ const LevelSchema = new Schema({
         required: true}
     },
     spin: {
-        spinType: {
+        spinPrice: {
             type: Array,
         required: true},
         maxNoOfSpins: {
             type: Number,
             required: true},
-        prices: {
+        spinRewards: {
             type: Array,
         required: true}
     },
@@ -226,10 +235,6 @@ const DailyPointsSchema = new Schema({
             type: Number,
             required: true,
             default: 0
-        },
-        dailyCheckIn: {
-            type: Number,
-            default: 0
         }
     },
     spin:{
@@ -245,7 +250,12 @@ const DailyPointsSchema = new Schema({
             type: Array,
             default: []
         }
-    }
+    },
+    dailyCheckIn: {
+        type: Number,
+        default: 0
+
+        }
 })
 
 

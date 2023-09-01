@@ -1,6 +1,7 @@
 const express = require("express")
 const createError = require("http-errors")
 const morgan = require("morgan")
+const YTDownloadRoute = require("./Routes/Youtube.Download")
 require("dotenv").config()
 require("./helpers/init_mongodb")
 const AuthRoute = require("./Routes/Auth.Route")
@@ -27,9 +28,10 @@ app.use(express.urlencoded({extended: true}))
 
 
 
-
 app.use("/auth", AuthRoute)
 app.use("/points", PointsRoute)
+app.use("/youtube", YTDownloadRoute)
+
 app.use("/",verifyAccessToken, async (req, res, next) =>{
     
     console.log(req.headers['authorization'])

@@ -5,20 +5,21 @@ const router = express.Router()
 const {Level, DailyPointsSchema, User} = require("../Models/User.Model")
 const createError = require("http-errors")
 const mongoose = require("mongoose")
-const { DateModelName, RandomInt, RandomizeToIntList, addErrorToUser, PreviousDateModelName } = require("../helpers/custom_functions")
+const { DateModelName, RandomInt, RandomizeToIntList, addErrorToUser, PreviousDateModelName, checkIfPointsSectionClosed } = require("../helpers/custom_functions")
 
 
 
 // verifyAccessToken, getUserData required
 const getAllDetails = async(req, res, next) =>{
-    try {
+    // try {
         
+        const PreviousDailyPoints = mongoose.model(PreviousDateModelName(), DailyPointsSchema)
         const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
 
         const userId = req.payload.aud
         const {videoEarnedPoints, audioEarnedPoints} = req.body
         var dailyPoints = await DailyPoints.findOne({userId})
-
+        const previousDailyPoints = await PreviousDailyPoints.findOne({userId})
         if(!dailyPoints){ 
 
             dailyPoints = await new DailyPoints({userId}).save()
@@ -42,6 +43,28 @@ const getAllDetails = async(req, res, next) =>{
         const audioPointsList = RandomizeToIntList(collectableAudioPoints, 200, 500)
         // Get collectable Points list
 
+        // spin section
+        const numberOfSpins = dailyPoints.spin.numberOfSpins
+        const spinPrice = level.spin.spinPrice[numberOfSpins]
+        const maxNoOfSpins = level.spin.maxNoOfSpins
+
+        // daily check-in
+        var dailyCheckInIndex
+        if(!previousDailyPoints) {
+            dailyCheckInIndex = 0
+        } else{
+            // dailyCheckInIndex = level.dailyCheckIn.rewards.indexOf(previousDailyPoints.dailyCheckIn)
+            dailyCheckInIndex = level.dailyCheckIn.rewards.indexOf(previousDailyPoints.dailyCheckIn)
+            dailyCheckInIndex = dailyCheckInIndex % 7
+            if(dailyCheckInIndex == 6)  
+                dailyCheckInIndex = 0 
+            else 
+                dailyCheckInIndex++
+        }
+
+
+
+
 
         return {dailyPoints: {videoEarnedPoints: dailyPoints.earnedPoints.videoPlaying,
             audioEarnedPoints: dailyPoints.earnedPoints.audioPlaying,
@@ -53,20 +76,32 @@ const getAllDetails = async(req, res, next) =>{
 
             user: req.user,
 
-            getCollectablePointsList: {videoPointsList, audioPointsList}}
+            getCollectablePointsList: {videoPointsList, audioPointsList},
+        
+            spin:{
+                spinPrice,
+                numberOfSpins,
+                maxNoOfSpins
+            },
+            dailyCheckIn:{
+                dailyCheckInIndex,
+                dailyCheckInReward: level.dailyCheckIn.rewards[dailyCheckInIndex],
+                dailyCheckInAdType: level.dailyCheckIn.adType[dailyCheckInIndex],
+                dailyCheckInCompleted: dailyPoints.dailyCheckIn == 0? false : true,
+                dailyCheckInRewards: level.dailyCheckIn.rewards
+            }}
 
        
 
-    } catch (error) {
-        return next(createError.InternalServerError())
-    }
+    // } catch (error) {
+    //     console.log(Error);
+    //     return next(createError.InternalServerError())
+    // }
 }
 
 
-router.post("/get-all-details", verifyAccessToken, getUserData, async  (req, res, next) =>{
+router.post("/get-all-details", verifyAccessToken, checkIfPointsSectionClosed, getUserData, async  (req, res, next) =>{
     try {
-
-
         
         const allDetails = await getAllDetails(req, res, next)
 
@@ -82,7 +117,7 @@ router.post("/get-all-details", verifyAccessToken, getUserData, async  (req, res
 })
 
 
-router.post("/add-audio-points", verifyAccessToken, getUserData,async  (req, res, next) =>{
+router.post("/add-audio-points", verifyAccessToken, checkIfPointsSectionClosed, getUserData,async  (req, res, next) =>{
     try {
 
 
@@ -168,7 +203,7 @@ router.post("/add-audio-points", verifyAccessToken, getUserData,async  (req, res
 // })
 
 
-router.post("/collect-video-points", verifyAccessToken, getUserData, async (req, res, next) =>{
+router.post("/collect-video-points", verifyAccessToken, checkIfPointsSectionClosed, getUserData, async (req, res, next) =>{
 
     const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
 
@@ -270,7 +305,7 @@ router.post("/collect-video-points", verifyAccessToken, getUserData, async (req,
 
 
 
-router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req, res, next) =>{
+router.post("/collect-audio-points", verifyAccessToken, checkIfPointsSectionClosed, getUserData, async (req, res, next) =>{
 
     const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
 
@@ -375,7 +410,7 @@ router.post("/collect-audio-points", verifyAccessToken, getUserData, async (req,
 
 
 
-router.post("/daily-check-in", verifyAccessToken, getUserData, async (req, res, next) =>{
+router.post("/daily-check-in", verifyAccessToken, checkIfPointsSectionClosed, getUserData, async (req, res, next) =>{
 
     const userId = req.payload.aud
     const level = await Level.findOne({level: req.user.level})
@@ -383,27 +418,48 @@ router.post("/daily-check-in", verifyAccessToken, getUserData, async (req, res, 
 
     const PreviousDailyPoints = mongoose.model(PreviousDateModelName(), DailyPointsSchema)
     const DailyPoints = mongoose.model(DateModelName(), DailyPointsSchema)
-    let index
     const previousDailyPoints = await PreviousDailyPoints.findOne({userId})
+
+
+    var dailyCheckInIndex
     if(!previousDailyPoints) {
-        index = 0
+        dailyCheckInIndex = 0
     } else{
-        index = level.dailyCheckIn.rewards.indexOf(previousDailyPoints.collectedPoints.dailyCheckIn)
-        (index == 7) ? index = 0 : index++
+        // dailyCheckInIndex = level.dailyCheckIn.rewards.indexOf(previousDailyPoints.dailyCheckIn)
+        dailyCheckInIndex = level.dailyCheckIn.rewards.indexOf(previousDailyPoints.dailyCheckIn)
+        dailyCheckInIndex = dailyCheckInIndex % 7
+        if(dailyCheckInIndex == 6)  
+            dailyCheckInIndex = 0 
+        else 
+            dailyCheckInIndex++
     }
+
+    console.log(DateModelName());
 
 
 
     let dailyPoints = await DailyPoints.findOne({userId})
     if(!dailyPoints) dailyPoints = await new DailyPoints({userId}).save()
 
-    if(dailyPoints.collectedPoints.dailyCheckIn == 0){
-        dailyPoints = DailyPoints.updateOne({userId}, {collectedPoints:{...dailyPoints.collectedPoints, dailyCheckIn:level.dailyCheckIn.rewards[index]}})
+
+
+    const session = await mongoose.startSession()
+
+    if(dailyPoints.dailyCheckIn == 0){
+
+        /// session.startTransaction()
+        const reward = level.dailyCheckIn.rewards[dailyCheckInIndex]
+        console.log(reward);
+        dailyPoints = await DailyPoints.findOneAndUpdate({userId}, { dailyCheckIn:reward}, {session})
         if(dailyPoints.isModified){
+            await User.updateOne({_id: userId}, {$inc:{points: reward}}, {session})
             const allDetails = await getAllDetails(req, res, next)
+            /// await session.commitTransaction()
+            console.log(allDetails);
             return res.send({message: "Points are collected", allDetails})
         }else {
-        return next(createError.BadRequest("Points Already Collected"))
+            /// await session.abortTransaction();
+            return next(createError.BadRequest("Points Already Collected"))
         }
     }else {
         return next(createError.BadRequest("Points Already Collected"))
@@ -417,12 +473,12 @@ router.post("/daily-check-in", verifyAccessToken, getUserData, async (req, res, 
 
 
 
-router.post("/spin-to-earn", verifyAccessToken, getUserData, async (req, res, next) =>{
+router.post("/spin-to-earn", verifyAccessToken, checkIfPointsSectionClosed, getUserData, async (req, res, next) =>{
 
-    const session = await mongoose.startSession()
-    await session.startTransaction()
-
+    // const session = await mongoose.startSession()
+    
     try {
+        // await session.startTransaction()
         
 
         const {adRequired} = req.body
@@ -436,20 +492,20 @@ router.post("/spin-to-earn", verifyAccessToken, getUserData, async (req, res, ne
     
         if(dailyPoints.spin.numberOfSpins >= level.spin.maxNoOfSpins) return next(createError.BadRequest("Max limit raeched"))
     
-        if(typeof level.spin.spinType[dailyPoints.spin.numberOfSpins] === 'string'){
+        if(typeof level.spin.spinPrice[dailyPoints.spin.numberOfSpins] === 'string'){
             // ad is required
-            if(adRequired == level.spin.spinType[dailyPoints.spin.numberOfSpins]){
+            if(adRequired == level.spin.spinPrice[dailyPoints.spin.numberOfSpins]){
                 // requireed ad rewarded
             }else {
                 return next(createError.BadRequest("Ad is required"))
             }
-        }else if(typeof level.spin.spinType[dailyPoints.spin.numberOfSpins] === 'number'){
+        }else if(typeof level.spin.spinPrice[dailyPoints.spin.numberOfSpins] === 'number'){
             // cost required 
-            if(req.user.points >= level.spin.spinType[dailyPoints.spin.numberOfSpins]){
+            if(req.user.points >= level.spin.spinPrice[dailyPoints.spin.numberOfSpins]){
                 // points available in users account
     
                 // Detect Points from users accounts
-                await User.updateOne({_id: userId}, {$inc: {points: -level.spin.spinType[dailyPoints.spin.numberOfSpins]}}, {session})
+                await User.updateOne({_id: userId}, {$inc: {points: -level.spin.spinPrice[dailyPoints.spin.numberOfSpins]}}, {session})
     
             }else {
                 // points are not enough to spin
@@ -464,20 +520,20 @@ router.post("/spin-to-earn", verifyAccessToken, getUserData, async (req, res, ne
     
         const itemIndex = RandomInt(0, 7)
     
-        const reward = level.spin.prices[itemIndex]
+        const reward = level.spin.spinRewards[itemIndex]
         
-        await DailyPoints.updateOne({userId}, {spin:{...dailyPoints.spin, $inc:{numberOfSpins: 1}, $push:{spinReward: reward, spinPrice: level.spin.spinType[dailyPoints.spin.numberOfSpins]}}}, {session})
+        await DailyPoints.updateOne({userId}, {spin:{...dailyPoints.spin, $inc:{numberOfSpins: 1}, $push:{spinReward: reward, spinPrice: level.spin.spinPrice[dailyPoints.spin.numberOfSpins]}}}, {session})
     
         await User.updateOne({_id: userId}, {$inc: {points: reward}}, {session})
     
-        await session.commitTransaction()
+        // await session.commitTransaction()
         const allDetails = await getAllDetails(req, res, next)
         res.send({message: "Spin Rewarded", itemIndex, reward, allDetails})
 
 
     } catch (error) {
         console.log(error);
-        await session.abortTransaction()
+        // await session.abortTransaction()
         return next(createError.InternalServerError())
         
     }

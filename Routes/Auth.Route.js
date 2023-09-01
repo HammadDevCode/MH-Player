@@ -4,14 +4,14 @@ const {User, Level} = require("../Models/User.Model")
 const {AuthRegistrationSchema, AuthLoginSchema} = require("../Models/validation_shema")
 const {signAccessToken, signRefreshToken, verifyRefreshToken, verifyAccessToken} = require("../helpers/jwt_helper")
 const {sendEmail} = require("../helpers/email")
-const { getUserData, _sendOtpToEmail, _verifyEmailWithOtp } = require("../helpers/Auth_helper")
+const { getUserData, _sendOtpToEmail, _verifyEmailWithOtp, addReferralReward } = require("../helpers/Auth_helper")
 const { sendResponse } = require("../helpers/custom_functions")
 const { default: mongoose } = require("mongoose")
 
 router.post("/register", async (req, res, next) =>{
     
     try {
-        const {firstName, lastName, email, password, referralCode} = req.body
+        const {firstName, lastName, email, password} = req.body
 
         const result = await AuthRegistrationSchema.validateAsync(req.body)
 
@@ -23,28 +23,6 @@ router.post("/register", async (req, res, next) =>{
         const user = new User(result)
         const savedUser = await user.save()
 
-
-        const session = await mongoose.startSession()
-        try {
-        // referral reward section
-            
-        const referralUser = await User.findOne({UID: referralCode})
-        if(referralUser){
-            await session.startTransaction()
-            const referralLevel = await Level.findOne({userId:referralUser._id})
-            if(referralLevel){
-            await User.updateOne({_id: savedUser.id}, {referralUser: {UID: referralCode, rewarded: referralLevel.referralReward}}, {session})
-            // Add referral reward (points)
-            await User.updateOne({_id: referralUser._id}, {$inc:{points: referralLevel.referralReward, referralsCount: 1}, $push:{referrals: savedUser.UID}}, {session})
-            await session.commitTransaction()
-            }
-
-        }
-        } catch (error) {
-            console.log("Abort Referal Reward");
-            console.log(error);
-            await session.abortTransaction()
-        }
 
         const accessToken = await signAccessToken(savedUser.id)
         const refreshToken = await signRefreshToken(savedUser.id)
@@ -89,7 +67,7 @@ router.post("/refresh-token", async(req, res, next) =>{
         const userId = await verifyRefreshToken(refreshToken)
 
         const user = await User.findOne({_id: userId})
-        
+        if(user.AccountStatus != "Enabled") return next(createError.Forbidden("Account Suspended"))
 
         const accessToken = await signAccessToken(userId)
         const newRefreshToken = await signRefreshToken(userId)
@@ -115,8 +93,13 @@ router.post("/send-Otp-Verification-Email", verifyAccessToken, _sendOtpToEmail, 
 
 router.post("/verify-Otp-Verification-Email", verifyAccessToken, _verifyEmailWithOtp,async (req, res, next)=>{
     const _id = req.payload.aud
-    const user = await User.findOne({_id:_id})
+    const user = await User.findOne({_id})
     await User.updateOne({_id:_id}, {verifications:{...user.verifications, email:true}})
+    const {referralCode} = req.body
+    if(referralCode){
+        addReferralReward(referralCode, user)
+    }
+    
     return sendResponse(res, 200, "Email verified Successfully")
     })
 

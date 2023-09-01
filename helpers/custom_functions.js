@@ -1,4 +1,6 @@
-const { User } = require("../Models/User.Model");
+const { date } = require("@hapi/joi");
+const { User, Level } = require("../Models/User.Model");
+const createHttpError = require("http-errors");
 
 
 
@@ -28,8 +30,7 @@ module.exports = {
 
     PreviousDateModelName: ()=>{
         const date = new Date()
-
-        date.setDate(date.getDate - 1)
+        date.setDate(date.getDate() - 1)
 
         const modelName = `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}`
         return modelName
@@ -57,5 +58,14 @@ module.exports = {
     addErrorToUser: async (userId, error)=>{
 
         await User.updateOne({_id:userId}, {$push: {Usererrors: error}})
+    },
+    checkIfPointsSectionClosed: async (req, res, next)=>{
+        const level = await Level.findOne({userId:req.payload.aud})
+
+        if(level.closePointsSection){
+            return next(createHttpError.Locked("Points section closed"))
+        } else{
+            next()
+        }
     }
 }

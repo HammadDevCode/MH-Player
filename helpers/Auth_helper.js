@@ -65,6 +65,32 @@ _sendOtpToEmail: async(req, res, next) =>{
     
     }
 },
+
+addReferralReward: async (referralCode, user)=>{
+
+    const session = await mongoose.startSession()
+        try {
+        // referral reward section
+            
+        const referralUser = await User.findOne({UID: referralCode})
+        if(referralUser){
+            await session.startTransaction()
+            const referralLevel = await Level.findOne({userId:referralUser._id})
+            if(referralLevel){
+            await User.updateOne({_id: user.id}, {referralUser: {UID: referralCode, rewarded: referralLevel.referralReward}}, {session})
+            // Add referral reward (points)
+            await User.updateOne({_id: referralUser._id}, {$inc:{points: referralLevel.referralReward, referralsCount: 1}, $push:{referrals: user.UID}}, {session})
+            await session.commitTransaction()
+            }
+
+        }
+        } catch (error) {
+            console.log("Abort Referral Reward");
+            console.log(error);
+            await session.abortTransaction()
+        }
+
+},
 _verifyEmailWithOtp: async (req, res, next)=>{
 // # (Not Acceptable)        API Call response : Status (406), message : Email OTP is empty
 // # (Not Found)             API Call response : Status (404), message : Email OTP not Verified //otp not found on db
