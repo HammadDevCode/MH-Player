@@ -6,6 +6,7 @@ require("dotenv").config()
 require("./helpers/init_mongodb")
 const AuthRoute = require("./Routes/Auth.Route")
 const PointsRoute = require("./Routes/Points.Route")
+const StatisticsRoute = require("./Routes/Statistics.Route")
 const { verifyAccessToken } = require("./helpers/jwt_helper")
 const { RandomInt } = require("./helpers/custom_functions")
 
@@ -31,6 +32,7 @@ app.use(express.urlencoded({extended: true}))
 app.use("/auth", AuthRoute)
 app.use("/points", PointsRoute)
 app.use("/youtube", YTDownloadRoute)
+app.use("/statistics", StatisticsRoute)
 
 app.use("/",verifyAccessToken, async (req, res, next) =>{
     

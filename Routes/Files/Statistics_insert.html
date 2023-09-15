@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootstrap Example</title>
+    <!-- Add Bootstrap CSS (place this in the <head> section of your HTML) -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+
+    <!-- Include Bootstrap CSS and JavaScript here -->
+    <!-- ... (as shown in step 1) ... -->
+    <style>
+        bac{
+            color: rgb(211, 211, 211);
+        }
+    </style>
+</head>
+<body>
+    <!-- Create a Bootstrap button -->
+    <!-- <button class="btn btn-primary">Click me</button> -->
+
+    <!-- Create a Bootstrap navigation bar -->
+    <form  class="form-horizontal align-items-center">
+        <div class="form-group col-auto">
+        <title>Insert Document</title>
+        <input  class="form-control" type="date" id="input_date" />
+        <input type="text" class="form-control" placeholder="Reason" id="input_reason" />
+        <input type="number" class="form-control" placeholder="Total Marks" id="input_total_marks" />
+        <input type="number" class="form-control" placeholder="Minimum Marks" id="input_min_pass_marks" />
+        <input type="number" class="form-control" placeholder="Fail fine" id="input_fail_fine" />
+        <input type="number" class="form-control" placeholder="Absent fine" id="input_absent_fine" />
+
+        </div>
+    </form>
+
+    <dev id="multi_entities">
+
+    <form class="form-horizontal mt-5 align-items-center" id="entity_form">
+        <div class="form-group col-auto">
+        
+        <input type="number" class="form-control" onchange="addEntity()" placeholder="Roll No"/>
+        <input type="number" class="form-control"  placeholder="Obtain Marks"/>
+
+
+        <details>
+            <summary>Custom</summary>
+        
+
+        <select class="form-control" placeholder="Result (pass | fail | absent)">
+            <option>Select Result</option>
+            <option>pass</option>
+            <option>fail</option>
+            <option>absent</option>
+        </select>
+        <input type="number" class="form-control" placeholder="fine"/>
+        <!-- <input class="form-control" placeholder="Absent fine"/> -->
+            
+        </details>
+
+
+        
+
+        </div>
+
+    </form>
+
+    </dev>
+
+    <button onclick="submitData()" class="btn btn-primary">submit</button>
+    <!-- Rest of your content goes here -->
+<!-- Add Bootstrap JavaScript and jQuery (place these before the closing </body> tag of your HTML) -->
+<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> -->
+
+    <!-- Include Bootstrap JavaScript here (as shown in step 1) -->
+
+
+    <script>
+
+        var entity_form = document.getElementById("entity_form")
+        var multi_entities = document.getElementById("multi_entities")
+        console.log(entity_form.cloneNode(true));
+
+
+
+        function addEntity(){
+            var clone = entity_form.cloneNode(true);
+            var inputs = clone.querySelectorAll("input")
+            // console.log(inputs);
+            inputs.forEach(element => {
+                element.value = ""
+            });
+        multi_entities.appendChild(clone)
+        }
+
+
+
+
+
+        function submitData(){
+            var inputs = multi_entities.querySelectorAll("input")
+            var selects = multi_entities.querySelectorAll("select")
+
+
+            var input_date = document.getElementById("input_date").value
+            var input_reason = document.getElementById("input_reason").value
+            var input_total_marks = document.getElementById("input_total_marks").value
+            var input_min_pass_marks = document.getElementById("input_min_pass_marks").value
+            var input_fail_fine = document.getElementById("input_fail_fine").value
+            var input_absent_fine = document.getElementById("input_absent_fine").value
+
+
+
+
+            // console.log(inputs, inputs.length%3);
+
+            // valid no of inputs 
+            if(inputs.length % 3 == 0){
+                if(!input_date){
+                    return window.alert("date not found")
+                }
+
+
+
+
+                var students = []
+
+                
+
+                for(var i = 0; i < inputs.length/3;i++){
+
+                    var roll_no = Number(inputs[i*3].value)
+                    // if fields data contains
+                    
+                    if(roll_no){
+                        var obtain_marks = Number(inputs[i*3+1].value)
+                        var result = selects[0].value
+                        var fine = Number(inputs[i*3+2].value)
+
+
+                        if(result == "Select Result"){
+                            if(obtain_marks >= input_min_pass_marks){
+                                result = "pass"
+                            } else if(obtain_marks == 0){
+                                result = "absent"
+                            } else if(obtain_marks < input_min_pass_marks){
+                                result = "fail"
+                            } else{
+                                window.alert(obtain_marks)
+                            }
+                        }
+
+                        if(fine == ""){
+                            if(result == "pass"){
+                                fine = 0
+                            } else if(result == "fail"){
+                                fine = input_fail_fine
+                            }else if(result == "absent"){
+                                fine = input_absent_fine
+                            } else{
+                                window.alert(`some error with roll no ${roll_no}, result: ${result}`)
+                            }
+                        }
+
+                        var paid = false;
+                        if(fine == 0){
+                            paid = true
+                        }
+
+
+
+
+                        students.push({
+                            roll_no,
+                            obtain_marks,
+                            result,
+                            fine,
+                            paid
+                        })
+
+
+                        
+
+
+                        console.log(roll_no, obtain_marks, result, fine);
+
+
+
+                    }
+
+                }
+
+                // request
+
+                var xhr = new XMLHttpRequest();
+                        xhr.open("POST", "./insert");
+                        xhr.setRequestHeader("Accept", "application/json");
+                        xhr.setRequestHeader("Content-Type", "application/json");
+                        xhr.onreadystatechange = function(){
+                            if(xhr.readyState === 4){
+                                console.log(xhr.status);
+                                console.log(xhr.responseText);
+                                window.alert(xhr.responseText)
+                            }
+                        }
+
+
+
+                        let data = `{
+                            "date": "${input_date}",
+                            "reason": "${input_reason}",
+                            "total_marks": "${input_total_marks}",
+                            "min_pass_marks": "${input_min_pass_marks}",
+                            "fail_fine": "${input_fail_fine}",
+                            "absent_fine": "${input_absent_fine}",
+                            "students": ${students}
+                        }`
+
+                        data = JSON.stringify({
+                            date: input_date,
+                            reason: input_reason,
+                            total_marks: input_total_marks,
+                            min_pass_marks: input_min_pass_marks,
+                            fail_fine: input_fail_fine,
+                            absent_fine: input_absent_fine,
+                            students
+                        })
+
+                        console.log(students);
+                        console.log(data);
+
+                        xhr.send(data)
+            }
+        }
+    </script>
+</body>
+</html>

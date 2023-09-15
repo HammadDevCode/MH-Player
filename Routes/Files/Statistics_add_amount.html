@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootstrap Example</title>
+    <!-- Add Bootstrap CSS (place this in the <head> section of your HTML) -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+
+    <!-- Include Bootstrap CSS and JavaScript here -->
+    <!-- ... (as shown in step 1) ... -->
+    <style>
+        bac{
+            color: rgb(211, 211, 211);
+        }
+    </style>
+</head>
+<body>
+    <!-- Create a Bootstrap button -->
+    <!-- <button class="btn btn-primary">Click me</button> -->
+
+    <!-- Create a Bootstrap navigation bar -->
+    
+    <dev id="multi_entities">
+
+    <form class="form-horizontal mt-5 align-items-center" id="entity_form">
+        <div class="form-group col-auto">
+        
+        <input type="number" class="form-control" onchange="addEntity()" placeholder="Roll No"/>
+        <input type="number" class="form-control"  placeholder="Amount"/>
+
+
+
+        
+
+        </div>
+
+    </form>
+
+    </dev>
+
+    <button onclick="submitData()" class="btn btn-primary">submit</button>
+    <!-- Rest of your content goes here -->
+<!-- Add Bootstrap JavaScript and jQuery (place these before the closing </body> tag of your HTML) -->
+<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> -->
+
+    <!-- Include Bootstrap JavaScript here (as shown in step 1) -->
+
+
+    <script>
+
+        var entity_form = document.getElementById("entity_form")
+        var multi_entities = document.getElementById("multi_entities")
+        console.log(entity_form.cloneNode(true));
+
+
+
+        function addEntity(){
+            var clone = entity_form.cloneNode(true);
+            var inputs = clone.querySelectorAll("input")
+            // console.log(inputs);
+            inputs.forEach(element => {
+                element.value = ""
+            });
+        multi_entities.appendChild(clone)
+        }
+
+
+
+
+
+        function submitData(){
+            var inputs = multi_entities.querySelectorAll("input")
+
+
+
+
+            // console.log(inputs, inputs.length%3);
+
+            // valid no of inputs 
+            if(inputs.length % 2 == 0){
+
+
+
+
+                var students = []
+
+                
+
+                for(var i = 0; i < inputs.length/2;i++){
+
+                    var roll_no = Number(inputs[i*2].value)
+                    // if fields data contains
+                    
+                    if(roll_no){
+                        var amount = Number(inputs[i*2+1].value)
+
+
+
+
+                        students.push({
+                            roll_no,
+                            amount
+                        })
+
+
+                        console.log(roll_no, amount);
+
+
+
+                    }
+
+                }
+
+                // request
+
+                var xhr = new XMLHttpRequest();
+                        xhr.open("POST", "./insert");
+                        xhr.setRequestHeader("Accept", "application/json");
+                        xhr.setRequestHeader("Content-Type", "application/json");
+                        xhr.onreadystatechange = function(){
+                            if(xhr.readyState === 4){
+                                console.log(xhr.status);
+                                console.log(xhr.responseText);
+                                window.alert(xhr.responseText)
+                            }
+                        }
+
+
+
+                        let data = `{
+                            "students": ${students}
+                        }`
+
+                        data = JSON.stringify({
+                            students
+                        })
+
+                        console.log(students);
+                        // console.log(data);
+
+                        // xhr.send(data)
+            }
+        }
+    </script>
+</body>
+</html>
