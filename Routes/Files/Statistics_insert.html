@@ -99,6 +99,7 @@
 
 
         function submitData(){
+
             var inputs = multi_entities.querySelectorAll("input")
             var selects = multi_entities.querySelectorAll("select")
 
@@ -207,30 +208,31 @@
 
 
 
-                        let data = `{
-                            "date": "${input_date}",
-                            "reason": "${input_reason}",
-                            "total_marks": "${input_total_marks}",
-                            "min_pass_marks": "${input_min_pass_marks}",
-                            "fail_fine": "${input_fail_fine}",
-                            "absent_fine": "${input_absent_fine}",
-                            "students": ${students}
-                        }`
+                        
 
-                        data = JSON.stringify({
+                        const password = window.prompt("Enter password for confirmation?\n\n"+students)
+
+
+                        let data = JSON.stringify({
                             date: input_date,
                             reason: input_reason,
                             total_marks: input_total_marks,
                             min_pass_marks: input_min_pass_marks,
                             fail_fine: input_fail_fine,
                             absent_fine: input_absent_fine,
-                            students
+                            students,
+                            password
                         })
 
                         console.log(students);
                         console.log(data);
 
-                        xhr.send(data)
+                        if(password){
+
+                            xhr.send(data)
+                        }else{
+                            window.alert("password did'nt provided")
+                        }
             }
         }
     </script>

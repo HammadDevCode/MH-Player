@@ -59,21 +59,37 @@ const StatisticsSchema = new mongoose.Schema({
 })
 
 const StatisticsAccountsSchema = new mongoose.Schema({
-    students:[
-        new mongoose.Schema({
-            roll_no:{
-                type: Number,
-                required: true
-            },
-            amount: {
-                type: Number,
-                required: true
-            }
-        })
-    ]
+    roll_no:{
+        type: Number,
+        required: true
+    },
+    amount: {
+        type: Number,
+        required: true
+    }
+        
+})
+
+const StatisticsTransactionsSchema = new mongoose.Schema({
+    time_stamp: {
+        type: String,
+        required: true,
+        default: Date.now()
+    },
+    roll_no: {
+        type: Number, 
+        required: true
+    },
+    amount: {
+        type: Number,
+        required: true
+    }
+
 })
 
 
 const Statistics = mongoose.model("Statistics", StatisticsSchema)
+const StatisticsAccounts = mongoose.model("Statistics Accounts", StatisticsAccountsSchema)
+const StatisticsTransaction = mongoose.model("Statistics Transactions", StatisticsTransactionsSchema)
 
-module.exports = {Statistics}
+module.exports = {Statistics, StatisticsAccounts, StatisticsTransaction}
